@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "\"*.y\"": "\"yacc\"",
+        "typeinfo": "c",
+        "xinu.h": "c"
+    }
+}
