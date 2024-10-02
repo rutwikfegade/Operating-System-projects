@@ -72,7 +72,27 @@ void Lottery_scheduler(struct procent *ptold)
                             current = current->Next;
                         } 
                         // kprintf("Exiting while\n");
-                        currpid = dequeue(readylist);
+                       while(nonempty(readylist))
+                        {
+                            pid32 next_pid = firstid(readylist);
+                            // kprintf("next_id: %d\n",next_pid);
+                            if(proctab[next_pid].user_process == FALSE)
+                            {
+                                dequeue(readylist);
+                                continue;
+                            }
+                            else
+                            {
+                                // if(proctab[next_pid].prstate != PR_READY)
+                                // {
+                                //     continue;
+                                // }
+                                currpid = dequeue(readylist);
+                                break;
+                            }
+                        }
+
+                        kprintf("New process: PID = %d, Stack Pointer = 0x%08x\n", currpid, ptnew->prstkptr);
                         ptnew = &proctab[currpid];
                         ptnew->prstate = PR_CURR;
                         preempt = QUANTUM;
