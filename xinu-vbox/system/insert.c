@@ -23,9 +23,9 @@ status	insert(
 	while (queuetab[curr].qkey >= key) {
 		curr = queuetab[curr].qnext;
 	}
-
+	// kprintf("current process is : %d\n",curr);
 	/* Insert process between curr node and previous node */
-	// kprintf("process added to queue: %d\n",pid);
+	// kprintf("process is: %d with key: %d\n",pid,key);
 	// print_ready_list();
 	prev = queuetab[curr].qprev;	/* Get index of previous node	*/
 	queuetab[pid].qnext = curr;

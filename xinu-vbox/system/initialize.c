@@ -210,7 +210,7 @@ static	void	sysinit()
 	/* Create a ready list for processes */
 
 	readylist = newqueue();
-
+	user_list = newqueue();
 
 	/* initialize the PCI bus */
 

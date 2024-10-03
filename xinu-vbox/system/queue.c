@@ -50,3 +50,25 @@ pid32	dequeue(
 	queuetab[pid].qnext = EMPTY;
 	return pid;
 }
+
+void print_queue(qid16 q) {
+    if (isbadqid(q)) {
+        kprintf("Invalid queue ID.\n");
+        return;
+    }
+
+    qid16 curr = firstid(q);  // Get the first process in the queue
+
+    if (isempty(q)) {
+        kprintf("Queue is empty.\n");
+        return;
+    }
+
+    kprintf("Queue elements (PID, key):\n");
+
+    // Traverse the queue until we reach the end
+    while (curr != queuetail(q)) {
+        kprintf("PID: %d, Key: %d\n", curr, queuetab[curr].qkey);
+        curr = queuetab[curr].qnext;  // Move to the next element in the queue
+    }
+}

@@ -12,6 +12,7 @@ void compute(uint32 runtime, uint32 *value)
                 ;
             (*value)++;
         }
+		kprintf("Process %d ends\n",currpid);
 }
 
 int main() {
@@ -31,7 +32,7 @@ int main() {
 	resume(prA);
 	resume(prB);
 	sleepms(4000);
-	// printList(head);
+	kprintf("User process are about to be Killed\n");
 	kill(prA);
 	kill(prB);
 	total_cnt = a_cnt + b_cnt ;

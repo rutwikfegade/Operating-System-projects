@@ -1,44 +1,37 @@
 /* resched.c - resched, resched_cntl */
 
 #include <xinu.h>
-// #define DEBUG_CTXSW
+
 struct	defer	Defer;
-extern int32 Total_Tickets;
+extern uint32 Total_Tickets;
 /*------------------------------------------------------------------------
  *  resched  -  Reschedule processor to highest priority eligible process
  *------------------------------------------------------------------------
  */
+
 void	resched(void)		/* Assumes interrupts are disabled	*/
 {
 	struct procent *ptold;	/* Ptr to table entry for old process	*/
 	struct procent *ptnew;	/* Ptr to table entry for new process	*/
 
 	/* If rescheduling is deferred, record attempt and return */
-	// print_ready_list();
+
 	if (Defer.ndefers > 0) {
 		Defer.attempt = TRUE;
 		return;
 	}
-	
-	/* Point to process table entry for the current (old) process */
 
 	ptold = &proctab[currpid];
 
-	// if(ptold->user_process == TRUE)
-	// {
-	// 	print_ready_list();
-	// }
-	// kprintf("user_process: %d, prname != prnull: %d\n", ptold->user_process, strcmp(ptold->prname, "prnull") != 0);
-	if(ptold->user_process == FALSE && strcmp(ptold->prname, "prnull") != 0)		// To filter system process other than user_process and prnull
+	if(strcmp(ptold->prname, "prnull") != 0 && ptold->user_process == FALSE)		// To get system process only
 	{
-		// kprintf("process pid going in: %d\n",currpid);
 		if (ptold->prstate == PR_CURR) {  /* Process remains eligible */
 		if (ptold->prprio > firstkey(readylist)) {
 			return;
 		}
 
 		/* Old process will no longer remain current */
-
+		// kprintf("This is a system process with pid: %d and name: %s\n",currpid,ptold->prname);
 		ptold->prstate = PR_READY;
 		insert(currpid, readylist, ptold->prprio);
 		}
@@ -49,78 +42,63 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 		ptnew = &proctab[currpid];
 		ptnew->prstate = PR_CURR;
 		preempt = QUANTUM;		/* Reset time slice for process	*/
-		
-		if(ptnew->prstate == PR_CURR && ptnew->user_process == TRUE)
-		{
-			// kprintf("pid; %d\n",currpid);
-			ptnew->num_ctxsw++;
-		}
-		#ifdef DEBUG_CTXSW
-			if(currpid != (ptold-proctab))
-			{
-				kprintf("ctxsw::%d-%d\n",(ptold-proctab),currpid);
-			}
-		
-		#endif
 		ctxsw(&ptold->prstkptr, &ptnew->prstkptr);
-		
+
 		/* Old process returns here when resumed */
 
 		return;
-
 	}
-	else if (ptold->user_process == TRUE && Total_Tickets > 0)
+	else if(strcmp(ptold->prname, "prnull") != 0 && ptold->user_process == TRUE)		// User process only
 	{
-		// kprintf("process pid going in: %d\n",currpid);
-		
-		Lottery_scheduler(ptold);
-		// kprintf("returned to pavellion\n");
-		return;
-	}
-	else
-	{
-		// kprintf("null else\n");
+		kprintf("Total_tickets: %d\n",Total_Tickets);
+		if(Total_Tickets <= 0)
+		{
+			return;
+		}
+		kprintf("This is a user process with pid: %d and state: %d\n",currpid,ptold->prstate);
 		// print_ready_list();
-		
-		if (ptold->prstate == PR_CURR) {  /* Process remains eligible */
-		if (ptold->prprio > firstkey(readylist)) {
+		Lottery_scheduler(ptold);
+		return;
+	}
+	else		// For null process
+	{
+		// kprintf("null\n");
+		if(nonempty(readylist))
+		{
+			if (ptold->prstate == PR_CURR) {  /* Process remains eligible */
+			if (ptold->prprio > firstkey(readylist)) {
+				return;
+			}
+			// kprintf("This is a Null process with pid: %d and name: %s\n",currpid,ptold->prname);
+			/* Old process will no longer remain current */
+
+			ptold->prstate = PR_READY;
+			insert(currpid, readylist, ptold->prprio);
+			}
+
+			/* Force context switch to highest priority ready process */
+
+			currpid = dequeue(readylist);
+			ptnew = &proctab[currpid];
+			ptnew->prstate = PR_CURR;
+			preempt = QUANTUM;		/* Reset time slice for process	*/
+			ctxsw(&ptold->prstkptr, &ptnew->prstkptr);
+		}
+		else if(nonempty(user_list))
+		{
+			Lottery_scheduler(ptold);
+		}
+		else
+		{
 			return;
 		}
 
-		/* Old process will no longer remain current */
-		
-		ptold->prstate = PR_READY;
-		insert(currpid, readylist, ptold->prprio);
-		}
-
-		/* Force context switch to highest priority ready process */
-
-		currpid = dequeue(readylist);
-		ptnew = &proctab[currpid];
-		ptnew->prstate = PR_CURR;
-		preempt = QUANTUM;		/* Reset time slice for process	*/
-		
-		if(ptnew->prstate == PR_CURR && ptnew->user_process == TRUE)
-		{
-			// kprintf("pid; %d\n",currpid);
-			ptnew->num_ctxsw++;
-		}
-		#ifdef DEBUG_CTXSW
-			if(currpid != (ptold-proctab))
-			{
-				kprintf("ctxsw::%d-%d\n",(ptold-proctab),currpid);
-			}
-		
-		#endif
-		ctxsw(&ptold->prstkptr, &ptnew->prstkptr);
-
 		/* Old process returns here when resumed */
-		// kprintf("here?\n");
-		return;
 
+		return;
 	}
-	
-	return;
+
+
 }
 
 /*------------------------------------------------------------------------

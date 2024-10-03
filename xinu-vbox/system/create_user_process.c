@@ -9,6 +9,7 @@ int32 Total_Tickets = 0;
 void set_tickets(pid32 pid, uint32 tickets)
 {
 	proctab[pid].tickets = tickets;
+	
 	Total_Tickets +=tickets;
 	// kprintf("Total_Tickets at set_tickets: %d",Total_Tickets);
 	Create_list_of_tickets(pid,tickets);

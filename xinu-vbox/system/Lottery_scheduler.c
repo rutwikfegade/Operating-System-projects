@@ -14,117 +14,93 @@ struct Node
 
 struct Node *head=NULL;
 extern int32 Total_Tickets;
+pid32 pid_is;
+struct Node* current;
+struct procent *ptnew;
+struct procent *ptcopy;
+
+pid32 Find_winner()
+{
+    srand(1);
+    uint32 counter = 0;
+    if(Total_Tickets > 0)
+    {
+        uint32 winner = rand()%Total_Tickets;
+        current = head;
+        
+        while(current)
+        {
+            counter += current->Data.tickets;
+            if(counter > winner)
+            {
+                proctab[current->Data.pid].tickets -= 1;
+                Total_Tickets -= 1;
+                return current->Data.pid;
+            }
+            current = current->Next;
+        }
+    }
+    return SYSERR;
+}
+
 void Lottery_scheduler(struct procent *ptold)
 {
-    struct procent *ptnew = NULL;
-    struct Node* current;
-    if(strcmp(ptold->prname, "prnull") == 0 || ptold->user_process == TRUE)                    // Filter the prnull and user ( this if is unncessary though )
+    pid32 new_pid = Find_winner();
+    ptcopy = &proctab[new_pid];
+    kprintf("Winner is: %d\n",new_pid);
+    if(new_pid == currpid)
     {
-        // kprintf("1st if and Total_Tickets: %d\n",Total_Tickets);
-        if(Total_Tickets > 0)                                                      // Will only take user process and not the null pprocess until all the tickets are utilized
-        {
-            // kprintf("2nd if\n");
-            // kprintf("user_process: %d, prname != prnull: %d\n", ptold->user_process, strcmp(ptold->prname, "prnull") != 0);
-            if(ptold->user_process == TRUE && strcmp(ptold->prname, "prnull") != 0)                // Filter only user process
-            {
-                // kprintf("3rd if\n");
-                // do
-                // {
-                    // print_ready_list();
-                    // printList(head);
-                    while(Total_Tickets > 0)
-                    {
-                        srand(1);
-                        uint32 winner = rand()%(Total_Tickets);
-                        kprintf("winner is: %d\n",winner);
-                        current = head;
-                        uint32 counter = 0;
-                        while(current)
-                        {
-                        
-                            counter = counter + current->Data.tickets;
-                            kprintf("counter is: %d, pid is: %d, tickets of pid is: %d, Total_tickets are: %d\n",counter,current->Data.pid,current->Data.tickets,Total_Tickets);
-                            if(counter > winner)
-                            {
-                                if (proctab[current->Data.pid].prstate == PR_CURR) {  /* Process remains eligible */
-                            
-
-                                /* Old process will no longer remain current */
-                                // kprintf("here\n");
-                                proctab[current->Data.pid].prstate = PR_READY;
-                                // kprintf("1\n");
-                                insert(currpid, readylist, current->Data.tickets);
-                                // kprintf("2\n");
-                                }
-                                // kprintf("4th if\n");
-                                if(proctab[current->Data.pid].prstate == PR_READY)              // schedule process that are ready
-                                {
-                                    // kprintf("process that is ready to schedule pid: %d\n",current->Data.pid);
-                                    // ptnew = &proctab[current->Data.pid];
-                                   
-                                    current->Data.tickets -= 1;
-                                    Total_Tickets -= 1;
-                                    break;
-                                    
-                                }
-                                // kprintf("Exiting 4th if\n");
-                            }
-                            current = current->Next;
-                        } 
-                        // kprintf("Exiting while\n");
-                       while(nonempty(readylist))
-                        {
-                            pid32 next_pid = firstid(readylist);
-                            // kprintf("next_id: %d\n",next_pid);
-                            if(proctab[next_pid].user_process == FALSE)
-                            {
-                                dequeue(readylist);
-                                continue;
-                            }
-                            else
-                            {
-                                // if(proctab[next_pid].prstate != PR_READY)
-                                // {
-                                //     continue;
-                                // }
-                                currpid = dequeue(readylist);
-                                break;
-                            }
-                        }
-
-                        kprintf("New process: PID = %d, Stack Pointer = 0x%08x\n", currpid, ptnew->prstkptr);
-                        ptnew = &proctab[currpid];
-                        ptnew->prstate = PR_CURR;
-                        preempt = QUANTUM;
-                        ctxsw(&ptold->prstkptr, &ptnew->prstkptr);
-                       
-                    }
-                    // else
-                    // {
-                    //     kprintf("Else\n");
-                    //     break;
-                    // }
-                    
-                // } while (ptnew != NULL);               // Get random numbers until winner is ready
-               
-                
-                kprintf("1\n");
-
-            }
-            else                            // if the user process are still present and we get a null process then just skip it dont schedule it
-            {
-                kprintf("2\n");
-                return;
-            }
-        }
-        else                            // if user process are done so we can schedule null process
-        {
-            kprintf("3\n");
-           return;
-        }
-        
+        return;
     }
+    if (ptold->prstate == PR_CURR) 
+    { 
+        // kprintf("Process inserted in userlist: %d\n",new_pid);
+		ptold->prstate = PR_READY;
+        kprintf("process %d being set to %d with %d tickets in if\n",currpid,ptold->prstate,ptold->tickets);
+		insert(currpid,user_list,ptold->tickets);
+        print_queue(user_list);
+	}
+    else
+    {
+        insert(new_pid,user_list,ptcopy->tickets);
+        print_queue(user_list);
+    }
+    // print_ready_list();
+    while (nonempty(user_list))
+    {
+        pid32 next_pid = firstid(user_list);
+        kprintf("Next PID to check: %d\n", next_pid);
 
+        if(next_pid == new_pid)
+        {
+            currpid = dequeue(user_list);
+            break;
+        }
+        else
+        {
+            dequeue(user_list);
+        }
+    }
+    kprintf("process Dequeued is: %d\n",currpid);
+    ptnew = &proctab[currpid];
+    if (ptnew->prstate != PR_FREE)
+    {
+        // kprintf("Switching to PID: %d (Process Name: %s)\n", pid_is, ptnew->prname);
+        ptnew->prstate = PR_CURR;
+        preempt = QUANTUM;
+
+        // Log stack pointer info before context switch
+        // kprintf("Context switch from PID: %d (esp: 0x%08X) to PID: %d (esp: 0x%08X)\n",
+        //         currpid, ptold->prstkptr, pid_is, ptnew->prstkptr);
+
+        // Perform context switch
+        ctxsw(&ptold->prstkptr, &ptnew->prstkptr);
+    }
+    else
+    {
+        // kprintf("Process PID %d is in invalid state (PR_FREE). Aborting.\n", pid_is);
+    }
+    return;
 }
 
 
