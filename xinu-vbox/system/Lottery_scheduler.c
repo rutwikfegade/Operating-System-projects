@@ -35,6 +35,7 @@ pid32 Find_winner()
             {
                 proctab[current->Data.pid].tickets -= 1;
                 Total_Tickets -= 1;
+                kprintf("Winner is: %d with ticket number; %d\n",current->Data.pid,winner);
                 return current->Data.pid;
             }
             current = current->Next;
@@ -47,7 +48,6 @@ void Lottery_scheduler(struct procent *ptold)
 {
     pid32 new_pid = Find_winner();
     ptcopy = &proctab[new_pid];
-    kprintf("Winner is: %d\n",new_pid);
     if(new_pid == currpid)
     {
         return;
@@ -62,6 +62,7 @@ void Lottery_scheduler(struct procent *ptold)
 	}
     else
     {
+        kprintf("process %d being set to %d with %d tickets in if\n",new_pid,ptcopy->prstate,ptcopy->tickets);
         insert(new_pid,user_list,ptcopy->tickets);
         print_queue(user_list);
     }
@@ -79,27 +80,24 @@ void Lottery_scheduler(struct procent *ptold)
         else
         {
             dequeue(user_list);
+            enqueue(next_pid,user_list);
         }
     }
     kprintf("process Dequeued is: %d\n",currpid);
     ptnew = &proctab[currpid];
-    if (ptnew->prstate != PR_FREE)
-    {
-        // kprintf("Switching to PID: %d (Process Name: %s)\n", pid_is, ptnew->prname);
-        ptnew->prstate = PR_CURR;
-        preempt = QUANTUM;
+    
+    // kprintf("Switching to PID: %d (Process Name: %s)\n", pid_is, ptnew->prname);
+    ptnew->prstate = PR_CURR;
+    preempt = QUANTUM;
 
-        // Log stack pointer info before context switch
-        // kprintf("Context switch from PID: %d (esp: 0x%08X) to PID: %d (esp: 0x%08X)\n",
-        //         currpid, ptold->prstkptr, pid_is, ptnew->prstkptr);
+    // Log stack pointer info before context switch
+    // kprintf("Context switch from PID: %d (esp: 0x%08X) to PID: %d (esp: 0x%08X)\n",
+    //         currpid, ptold->prstkptr, pid_is, ptnew->prstkptr);
 
-        // Perform context switch
-        ctxsw(&ptold->prstkptr, &ptnew->prstkptr);
-    }
-    else
-    {
-        // kprintf("Process PID %d is in invalid state (PR_FREE). Aborting.\n", pid_is);
-    }
+    // Perform context switch
+    ctxsw(&ptold->prstkptr, &ptnew->prstkptr);
+    
+    
     return;
 }
 

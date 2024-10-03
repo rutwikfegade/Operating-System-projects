@@ -14,7 +14,7 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 	struct procent *ptold;	/* Ptr to table entry for old process	*/
 	struct procent *ptnew;	/* Ptr to table entry for new process	*/
 
-	/* If rescheduling is deferred, record attempt and return */
+
 
 	if (Defer.ndefers > 0) {
 		Defer.attempt = TRUE;
@@ -25,63 +25,55 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 
 	if(strcmp(ptold->prname, "prnull") != 0 && ptold->user_process == FALSE)		// To get system process only
 	{
-		if (ptold->prstate == PR_CURR) {  /* Process remains eligible */
+		if (ptold->prstate == PR_CURR) { 
 		if (ptold->prprio > firstkey(readylist)) {
 			return;
 		}
 
-		/* Old process will no longer remain current */
 		// kprintf("This is a system process with pid: %d and name: %s\n",currpid,ptold->prname);
 		ptold->prstate = PR_READY;
 		insert(currpid, readylist, ptold->prprio);
 		}
 
-		/* Force context switch to highest priority ready process */
 
 		currpid = dequeue(readylist);
 		ptnew = &proctab[currpid];
 		ptnew->prstate = PR_CURR;
-		preempt = QUANTUM;		/* Reset time slice for process	*/
+		preempt = QUANTUM;	
 		ctxsw(&ptold->prstkptr, &ptnew->prstkptr);
 
-		/* Old process returns here when resumed */
 
 		return;
 	}
 	else if(strcmp(ptold->prname, "prnull") != 0 && ptold->user_process == TRUE)		// User process only
 	{
 		kprintf("Total_tickets: %d\n",Total_Tickets);
-		if(Total_Tickets <= 0)
+		if(Total_Tickets <= 0 || ptold->tickets <=0)
 		{
 			return;
 		}
-		kprintf("This is a user process with pid: %d and state: %d\n",currpid,ptold->prstate);
+		kprintf("This is a user process with pid: %d and state: %d and tickets: %d\n",currpid,ptold->prstate,ptold->tickets);
 		// print_ready_list();
 		Lottery_scheduler(ptold);
 		return;
 	}
 	else		// For null process
 	{
-		// kprintf("null\n");
 		if(nonempty(readylist))
 		{
 			if (ptold->prstate == PR_CURR) {  /* Process remains eligible */
 			if (ptold->prprio > firstkey(readylist)) {
 				return;
 			}
-			// kprintf("This is a Null process with pid: %d and name: %s\n",currpid,ptold->prname);
-			/* Old process will no longer remain current */
-
+		
 			ptold->prstate = PR_READY;
 			insert(currpid, readylist, ptold->prprio);
 			}
 
-			/* Force context switch to highest priority ready process */
-
 			currpid = dequeue(readylist);
 			ptnew = &proctab[currpid];
 			ptnew->prstate = PR_CURR;
-			preempt = QUANTUM;		/* Reset time slice for process	*/
+			preempt = QUANTUM;		
 			ctxsw(&ptold->prstkptr, &ptnew->prstkptr);
 		}
 		else if(nonempty(user_list))
@@ -92,8 +84,6 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 		{
 			return;
 		}
-
-		/* Old process returns here when resumed */
 
 		return;
 	}
