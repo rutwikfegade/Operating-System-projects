@@ -18,7 +18,7 @@ syscall  print_ready_list()
 		prptr = &proctab[i];
 		if(prptr->prstate == PR_READY)
 		{
-			kprintf("The ready process PID is %d and process name is %s with priority %d\n",i,prptr->prname,prptr->prprio);
+			kprintf("The ready process PID is %d and process name is %s with priority %d\n",i,prptr->prname,prptr->tickets);
 		}
 	}
 }
