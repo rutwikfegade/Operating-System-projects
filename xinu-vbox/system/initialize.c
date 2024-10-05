@@ -161,7 +161,7 @@ static	void	sysinit()
 	/* Initialize free memory list */
 	
 	meminit();
-
+	srand(1);
 	/* Initialize system variables */
 
 	/* Count the Null process as the first process in the system */
@@ -211,7 +211,7 @@ static	void	sysinit()
 
 	readylist = newqueue();
 	user_list = newqueue();
-
+	// extern void burst_execution(uint32,uint32,uint32);
 	/* initialize the PCI bus */
 
 	pci_init();

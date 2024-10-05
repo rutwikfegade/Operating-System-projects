@@ -1,5 +1,6 @@
 #include<xinu.h>
 #include<stdlib.h>
+// #define DEBUG_CTXSW
 struct data
 {
     uint32 tickets;
@@ -21,21 +22,24 @@ struct procent *ptcopy;
 
 pid32 Find_winner()
 {
-    srand(1);
     uint32 counter = 0;
+    uint32 winner;
     if(Total_Tickets > 0)
     {
-        uint32 winner = rand()%Total_Tickets;
+        winner = rand()%Total_Tickets;
+        // kprintf("winner is: %d and Total_tickets is:%d\n",winner,Total_Tickets);
         current = head;
         
         while(current)
         {
             counter += current->Data.tickets;
+            // kprintf("counter: %d and current tickets: %d\n",counter,current->Data.tickets);
             if(counter > winner)
             {
-                proctab[current->Data.pid].tickets -= 1;
-                Total_Tickets -= 1;
-                kprintf("Winner is: %d with ticket number; %d\n",current->Data.pid,winner);
+                // kprintf("winner is: %d\n",winner);
+                // proctab[current->Data.pid].tickets -= 1;
+                // Total_Tickets -= 1;
+                // kprintf("Winner is: %d with ticket number; %d\n",current->Data.pid,winner);
                 return current->Data.pid;
             }
             current = current->Next;
@@ -47,55 +51,50 @@ pid32 Find_winner()
 void Lottery_scheduler(struct procent *ptold)
 {
     pid32 new_pid = Find_winner();
-    ptcopy = &proctab[new_pid];
-    if(new_pid == currpid)
+    if(new_pid == currpid || (proctab[new_pid].prstate != PR_READY && proctab[new_pid].prstate != PR_CURR) )
     {
         return;
     }
+    ptcopy = &proctab[new_pid];
     if (ptold->prstate == PR_CURR) 
     { 
         // kprintf("Process inserted in userlist: %d\n",new_pid);
 		ptold->prstate = PR_READY;
-        kprintf("process %d being set to %d with %d tickets in if\n",currpid,ptold->prstate,ptold->tickets);
-		insert(currpid,user_list,ptold->tickets);
-        print_queue(user_list);
-	}
-    else
-    {
-        kprintf("process %d being set to %d with %d tickets in if\n",new_pid,ptcopy->prstate,ptcopy->tickets);
-        insert(new_pid,user_list,ptcopy->tickets);
-        print_queue(user_list);
-    }
-    // print_ready_list();
-    while (nonempty(user_list))
-    {
-        pid32 next_pid = firstid(user_list);
-        kprintf("Next PID to check: %d\n", next_pid);
-
-        if(next_pid == new_pid)
+        // kprintf("process %d being set to %d with %d tickets in if\n",currpid,ptold->prstate,ptold->tickets);
+        if(strcmp(ptold->prname, "prnull") == 0)
         {
-            currpid = dequeue(user_list);
-            break;
+            insert(currpid,readylist,ptold->prprio);
         }
         else
         {
-            dequeue(user_list);
-            enqueue(next_pid,user_list);
+            insert(currpid,user_list,ptold->tickets);
         }
-    }
-    kprintf("process Dequeued is: %d\n",currpid);
-    ptnew = &proctab[currpid];
+		
+        // print_queue(user_list);
+	}
+    // kprintf("winner is %d \n",new_pid);
+    // print_queue(user_list);
+    dequeue_user_list(new_pid,user_list);
+    // ptnew = &proctab[currpid];
+    // print_queue(user_list);
     
-    // kprintf("Switching to PID: %d (Process Name: %s)\n", pid_is, ptnew->prname);
-    ptnew->prstate = PR_CURR;
+    currpid = new_pid;
+    ptcopy->prstate = PR_CURR;
     preempt = QUANTUM;
 
-    // Log stack pointer info before context switch
     // kprintf("Context switch from PID: %d (esp: 0x%08X) to PID: %d (esp: 0x%08X)\n",
-    //         currpid, ptold->prstkptr, pid_is, ptnew->prstkptr);
+    //         currpid, ptold->prstkptr, new_pid, ptcopy->prstkptr);
 
     // Perform context switch
-    ctxsw(&ptold->prstkptr, &ptnew->prstkptr);
+    ptold->num_ctxsw++;
+    #ifdef DEBUG_CTXSW
+        if(currpid != (ptold-proctab))
+        {
+            kprintf("3ctxsw::%d-%d\n",(ptold-proctab),currpid);
+        }
+
+    #endif
+    ctxsw(&ptold->prstkptr, &ptcopy->prstkptr);
     
     
     return;
@@ -106,6 +105,37 @@ void Lottery_scheduler(struct procent *ptold)
 
 void Create_list_of_tickets(uint32 pid, uint32 tickets)
 {
+    struct Node* current_check = head;
+    struct Node* prev = NULL;
+
+    while(current_check != NULL)
+    {
+        if(proctab[current_check->Data.pid].prstate == PR_FREE)
+        {
+            if(current_check == head)
+            {
+                head = current_check->Next;
+                Total_Tickets -= current_check->Data.tickets;
+                freemem((char*)current_check,sizeof(struct Node));
+                current_check = head;
+            }
+            else
+            {
+                prev->Next = current_check->Next;
+                Total_Tickets -= current_check->Data.tickets;
+                freemem((char*)current_check,sizeof(struct Node));
+                current_check = prev->Next;
+            }
+        }
+        else
+        {
+            prev = current_check;
+            current_check = current_check->Next;
+        }
+    }
+
+
+
     struct Node* newnode = (struct Node*)getmem(sizeof(struct Node));
     newnode->Data.pid = pid;
     newnode->Data.tickets = tickets;

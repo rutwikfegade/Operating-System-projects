@@ -51,6 +51,25 @@ pid32	dequeue(
 	return pid;
 }
 
+void dequeue_user_list(pid32 pid, qid16 q)
+{
+	pid32	head_of_user_list;			/* ID of process removed	*/
+
+	if (isbadqid(q)) {
+		return SYSERR;
+	} else if (isempty(q)) {
+		return EMPTY;
+	}
+	head_of_user_list = firstid(q);
+	// kprintf("head before: %d\n",head_of_user_list);
+	queuetab[queuetab[pid].qprev].qnext = queuetab[pid].qnext;
+	queuetab[queuetab[pid].qnext].qprev = queuetab[pid].qprev;
+	head_of_user_list = firstid(q);
+	// kprintf("head after: %d\n",head_of_user_list);
+	return;
+	
+}
+
 void print_queue(qid16 q) {
     if (isbadqid(q)) {
         kprintf("Invalid queue ID.\n");

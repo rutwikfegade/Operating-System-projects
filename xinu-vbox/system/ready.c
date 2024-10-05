@@ -37,9 +37,9 @@ status	ready(
 
 	prptr = &proctab[pid];
 	prptr->prstate = PR_READY;
-	if(prptr->user_process == TRUE || strcmp(prptr->prname, "prnull") == 0)
+	if(prptr->user_process == TRUE)
 	{
-		kprintf("Inserting pid: %d\n",pid);
+		// kprintf("Inserting pid: %d\n",pid);
 		insert(pid, user_list, prptr->tickets);
 	}
 	else
