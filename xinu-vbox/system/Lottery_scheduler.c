@@ -1,6 +1,6 @@
 #include<xinu.h>
 #include<stdlib.h>
-// #define DEBUG_CTXSW
+#define DEBUG_CTXSW
 struct data
 {
     uint32 tickets;
@@ -48,7 +48,7 @@ pid32 Find_winner()
     return SYSERR;
 }
 
-void Lottery_scheduler(struct procent *ptold)
+void Lottery_scheduler(struct procent *ptold, pid32 calling_pid)
 {
     pid32 new_pid = Find_winner();
     if(new_pid == currpid || (proctab[new_pid].prstate != PR_READY && proctab[new_pid].prstate != PR_CURR) )
@@ -76,21 +76,21 @@ void Lottery_scheduler(struct procent *ptold)
     // print_queue(user_list);
     dequeue_user_list(new_pid,user_list);
     // ptnew = &proctab[currpid];
-    // print_queue(user_list);
+    print_queue(user_list);
     
     currpid = new_pid;
     ptcopy->prstate = PR_CURR;
     preempt = QUANTUM;
 
     // kprintf("Context switch from PID: %d (esp: 0x%08X) to PID: %d (esp: 0x%08X)\n",
-    //         currpid, ptold->prstkptr, new_pid, ptcopy->prstkptr);
+    //         calling_pid, ptold->prstkptr, new_pid, ptcopy->prstkptr);
 
     // Perform context switch
-    ptold->num_ctxsw++;
+    ptcopy->num_ctxsw++;
     #ifdef DEBUG_CTXSW
-        if(currpid != (ptold-proctab))
+        if(currpid != calling_pid)
         {
-            kprintf("3ctxsw::%d-%d\n",(ptold-proctab),currpid);
+            kprintf("3ctxsw::%d-%d\n",calling_pid,currpid);
         }
 
     #endif

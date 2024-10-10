@@ -34,7 +34,7 @@ status	ready(
 	}
 
 	/* Set process state to indicate ready and add to ready list */
-
+	kprintf("calling pid %d\n",pid);
 	prptr = &proctab[pid];
 	prptr->prstate = PR_READY;
 	if(prptr->user_process == TRUE)

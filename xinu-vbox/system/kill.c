@@ -2,6 +2,7 @@
 
 #include <xinu.h>
 // extern uint32	ctr1000;
+extern uint32 Total_Tickets;
 /*------------------------------------------------------------------------
  *  kill  -  Kill a process and remove it from the system
  *------------------------------------------------------------------------
@@ -23,6 +24,7 @@ syscall	kill(
 	if(prptr->user_process == TRUE)
 	{
 		// kprintf("Inside?\n");
+		Total_Tickets -= prptr->tickets;
 		prptr->turnaroundtime = ctr1000 - prptr->start_time_for_turnaroundtime;
 	}
 
