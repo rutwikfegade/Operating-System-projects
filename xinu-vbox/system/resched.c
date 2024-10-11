@@ -1,7 +1,8 @@
 /* resched.c - resched, resched_cntl */
 
 #include <xinu.h>
-// #define DEBUG_CTXSW
+#define DEBUG_CTXSW
+#define DEBUG
 struct	defer	Defer;
 pid32 new_pid;
 extern uint32 Total_Tickets;
@@ -113,7 +114,8 @@ void system_to_user(struct procent *ptold, pid32 calling_pid)
 void user_to_user(struct procent *ptold, pid32 calling_pid)
 {
 	// print_ready_list();
-	// kprintf("This is a user to user process with pid: %d and state: %d\n",currpid,ptold->prstate);
+	pid32 Entering_pid = currpid;
+	kprintf("This is a user to user process with pid: %d and state: %d\n",currpid,ptold->prstate);
 	if (ptold->prstate == PR_CURR) { 
 		ptold->prstate = PR_READY;
 		insert_user_process(currpid, user_list, ptold->tickets);
@@ -124,16 +126,17 @@ void user_to_user(struct procent *ptold, pid32 calling_pid)
 		{
 			return;
 		}
-		// kprintf("winner %d\n",new_pid);
-		if(new_pid == currpid)
-		{
-			return;
-		}
+		kprintf("winner is %d and currpid is %d\n",new_pid,currpid);
 		dequeue_user_list(new_pid,user_list);
 		currpid = new_pid;
 		ptnew = &proctab[currpid];
 		ptnew->prstate = PR_CURR;
-		preempt = QUANTUM;	
+		preempt = QUANTUM;
+		if(new_pid == Entering_pid)
+		{
+			return;
+		}
+			
 		ptnew->num_ctxsw++;
 		#ifdef DEBUG_CTXSW
 			if(currpid != calling_pid)
@@ -151,7 +154,7 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 {
 	
 
-	// kprintf("process entering is %d with state %d and priority %d\n",currpid,proctab[currpid].prstate,proctab[currpid].prprio);
+	kprintf("process entering is %d with state %d and priority %d\n",currpid,proctab[currpid].prstate,proctab[currpid].prprio);
 	pid32 calling_pid = currpid;
 	if (Defer.ndefers > 0) {
 		Defer.attempt = TRUE;
@@ -166,17 +169,23 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 		{
 			if(firstid(readylist) != 0)			//System
 			{
-				// kprintf("system current to system, entered pid %d\n",currpid);
+				#ifdef DEBUG
+					kprintf("system current to system, entered pid %d\n",currpid);
+				#endif
 				system_to_other(ptold,calling_pid);
 			}
 			else if (nonempty(user_list))			// user
 			{
-				// kprintf("system current to user, entered pid %d\n",currpid);
+				#ifdef DEBUG
+					kprintf("system current to user, entered pid %d\n",currpid);
+				#endif
 				system_to_user(ptold,calling_pid);
 			}
 			else									// NULL
 			{
-				// kprintf("system current to null, entered pid %d\n",currpid);
+				#ifdef DEBUG
+					kprintf("system current to null, entered pid %d\n",currpid);
+				#endif
 				system_to_other(ptold,calling_pid);
 			}
 		}
@@ -185,18 +194,24 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 			// print_queue(readylist);
 			if(firstid(readylist) != 0)			//System
 			{
-				// kprintf("system not current to system, entered pid %d\n",currpid);
+				#ifdef DEBUG
+					kprintf("system not current to system, entered pid %d\n",currpid);
+				#endif
 				system_to_other(ptold,calling_pid);
 			}
 			else if (nonempty(user_list))			// user
 			{
-				// kprintf("system not current to user, entered pid %d\n",currpid);
+				#ifdef DEBUG
+					kprintf("system not current to user, entered pid %d\n",currpid);
+				#endif
 				// print_queue(user_list);
 				system_to_user(ptold,calling_pid);
 			}
 			else									// NULL
 			{
-				// kprintf("system not current to null, entered pid %d\n",currpid);
+				#ifdef DEBUG
+					kprintf("system not current to null, entered pid %d\n",currpid);
+				#endif
 				system_to_other(ptold,calling_pid);
 			}
 		}
@@ -207,19 +222,26 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 		// kprintf("This is a user process with pid: %d and state: %d and tickets: %d\n",currpid,ptold->prstate,ptold->tickets);
 		// print_ready_list();
 		// print_queue(readylist);
+		// print_queue(user_list);
 		if(firstid(readylist) != 0)			//System
 		{
-			// kprintf("user current to system, entered pid %d\n",currpid);
+			#ifdef DEBUG
+				kprintf("user current to system, entered pid %d\n",currpid);
+			#endif
 			user_to_system(ptold,calling_pid);
 		}
-		else if (nonempty(user_list))			// user
+		else if (nonempty(user_list) || Total_Tickets <= ptold->tickets)			// user
 		{
-			// kprintf("user current to user, entered pid %d\n",currpid);
+			#ifdef DEBUG
+				kprintf("user current to user, entered pid %d\n",currpid);
+			#endif
 			user_to_user(ptold,calling_pid);
 		}
 		else
 		{
-			// kprintf("user current to null, entered pid %d\n",currpid);
+			#ifdef DEBUG
+				kprintf("user current to null, entered pid %d\n",currpid);
+			#endif
 			user_to_system(ptold,calling_pid);
 		}
 	}
@@ -229,7 +251,9 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 		// print_queue(readylist);
 		if(nonempty(readylist) && firstid(readylist) != 0)
 		{
-			// kprintf("user not current or null any to system, entered pid %d\n",currpid);
+			#ifdef DEBUG
+				kprintf("user not current or null any to system, entered pid %d\n",currpid);
+			#endif
 			if(ptold->user_process == TRUE)
 			{
 				user_to_system(ptold,calling_pid);
@@ -242,7 +266,9 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 		}
 		else if(nonempty(user_list))
 		{
-			// kprintf("user not current or null any to user, entered pid %d\n",currpid);
+			#ifdef DEBUG
+				kprintf("user not current or null any to user, entered pid %d\n",currpid);
+			#endif
 			if(ptold->user_process == TRUE)
 			{
 				user_to_user(ptold,calling_pid);
@@ -255,7 +281,9 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 		}
 		else
 		{
-			// kprintf("user not current or null any to null, entered pid %d\n",currpid);
+			#ifdef DEBUG
+				kprintf("user not current or null any to null, entered pid %d\n",currpid);
+			#endif
 			system_to_other(ptold,calling_pid);
 		}
 	}

@@ -47,7 +47,7 @@ pid32 Find_winner()
         counter += proctab[curr].tickets;
         if(counter > winner)
         {
-            // kprintf("winner is %d\n",curr);
+            kprintf("winner is %d\n",curr);
             return curr;
         }
         curr = queuetab[curr].qnext;
