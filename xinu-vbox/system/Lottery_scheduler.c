@@ -22,7 +22,7 @@ struct procent *ptcopy;
 bool8 flag;
 pid32 Find_winner()
 {
-    
+    // print_queue(user_list);
     Total_Tickets = 0;
     uint32 counter = 0;
     uint32 winner;
@@ -32,9 +32,13 @@ pid32 Find_winner()
     while (curr_1 != queuetail(user_list)) {
         Total_Tickets += proctab[curr_1].tickets;
         // kprintf("PID: %d, Key: %d\n", curr_1, queuetab[curr_1].qkey);
-        curr_1 = queuetab[curr_1].qnext;  // Move to the next element in the queue
+        curr_1 = queuetab[curr_1].qnext; 
     }
     // kprintf("Total tickets %d\n",Total_Tickets);
+    if(Total_Tickets <= 0 )
+    {
+        return SYSERR;
+    }
     winner = rand()%Total_Tickets;
     
     curr = firstid(user_list);

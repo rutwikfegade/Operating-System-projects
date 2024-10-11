@@ -21,7 +21,8 @@ void burst_execution(uint32 number_bursts, uint32 burst_duration, uint32 sleep_d
     int i;
     for(i=0;i<number_bursts;i++)
     {
-        while(proctab[currpid].runtime < burst_duration);
+		uint32 start_time = proctab[currpid].runtime;
+        while(proctab[currpid].runtime - start_time < burst_duration);
         sleepms(sleep_duration);
     }
     sleepms(sleep_duration);
