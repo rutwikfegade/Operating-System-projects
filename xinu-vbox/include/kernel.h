@@ -57,6 +57,7 @@ typedef	int32	status;		/* returned status value (OK/SYSERR)	*/
 
 extern	qid16	readylist;	/* global ID for list of ready processes*/
 extern	qid16	user_list;	/* global ID for list of user ready processes*/
+extern void burst_execution(uint32 number_bursts, uint32 burst_duration, uint32 sleep_duration);
 
 #define	MINSTK	400		/* minimum stack size in bytes		*/
 
