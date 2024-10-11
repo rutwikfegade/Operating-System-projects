@@ -14,78 +14,80 @@ struct Node
 };
 
 struct Node *head=NULL;
-extern int32 Total_Tickets;
-pid32 pid_is;
+pid32 new_pid;
+uint32 Total_Tickets;
 struct Node* current;
 struct procent *ptnew;
 struct procent *ptcopy;
-
+bool8 flag;
 pid32 Find_winner()
 {
+    
+    Total_Tickets = 0;
     uint32 counter = 0;
     uint32 winner;
-    if(Total_Tickets > 0)
-    {
-        winner = rand()%Total_Tickets;
-        // kprintf("winner is: %d and Total_tickets is:%d\n",winner,Total_Tickets);
-        current = head;
-        
-        while(current)
-        {
-            counter += current->Data.tickets;
-            // kprintf("counter: %d and current tickets: %d\n",counter,current->Data.tickets);
-            if(counter > winner)
-            {
-                // kprintf("winner is: %d\n",winner);
-                // proctab[current->Data.pid].tickets -= 1;
-                // Total_Tickets -= 1;
-                // kprintf("Winner is: %d with ticket number; %d\n",current->Data.pid,winner);
-                return current->Data.pid;
-            }
-            current = current->Next;
-        }
+    pid32 curr;
+    // kprintf("Total tickets %d\n",Total_Tickets);
+    qid16 curr_1 = firstid(user_list);
+    while (curr_1 != queuetail(user_list)) {
+        Total_Tickets += proctab[curr_1].tickets;
+        // kprintf("PID: %d, Key: %d\n", curr_1, queuetab[curr_1].qkey);
+        curr_1 = queuetab[curr_1].qnext;  // Move to the next element in the queue
     }
-    return SYSERR;
+    // kprintf("Total tickets %d\n",Total_Tickets);
+    winner = rand()%Total_Tickets;
+    
+    curr = firstid(user_list);
+    while(TRUE)
+    {
+        counter += proctab[curr].tickets;
+        if(counter > winner)
+        {
+            // kprintf("winner is %d\n",curr);
+            return curr;
+        }
+        curr = queuetab[curr].qnext;
+    }
+    
+    // counter += proctab[curr].tickets;
+    // kprintf("winner value %d and counter is %d\n",winner,counter);
+    // while(!(counter > winner))
+    // {
+    //     // kprintf("hey\n");
+    //     curr = queuetab[curr].qnext;
+    //     counter += proctab[curr].tickets;
+    // }
+    // return curr;
+
 }
 
 void Lottery_scheduler(struct procent *ptold, pid32 calling_pid)
 {
-    pid32 new_pid = Find_winner();
-    if(new_pid == currpid || (proctab[new_pid].prstate != PR_READY && proctab[new_pid].prstate != PR_CURR) )
+    
+    if(ptold->prstate == PR_CURR)
     {
-        return;
-    }
-    ptcopy = &proctab[new_pid];
-    if (ptold->prstate == PR_CURR) 
-    { 
-        // kprintf("Process inserted in userlist: %d\n",new_pid);
-		ptold->prstate = PR_READY;
-        // kprintf("process %d being set to %d with %d tickets in if\n",currpid,ptold->prstate,ptold->tickets);
-        if(strcmp(ptold->prname, "prnull") == 0)
+        ptold->prstate = PR_READY;
+        if(ptold->user_process == FALSE)
         {
             insert(currpid,readylist,ptold->prprio);
         }
         else
         {
-            insert(currpid,user_list,ptold->tickets);
+            insert_user_process(currpid,user_list,ptold->tickets);
         }
-		
-        // print_queue(user_list);
-	}
-    // kprintf("winner is %d \n",new_pid);
-    // print_queue(user_list);
-    dequeue_user_list(new_pid,user_list);
-    // ptnew = &proctab[currpid];
+
+    }
     print_queue(user_list);
-    
+    new_pid = Find_winner();
+    ptcopy = &proctab[new_pid];
+    if(new_pid == currpid)
+    {
+        return;
+    }
+    dequeue_user_list(new_pid,user_list);
     currpid = new_pid;
-    ptcopy->prstate = PR_CURR;
+    
     preempt = QUANTUM;
-
-    // kprintf("Context switch from PID: %d (esp: 0x%08X) to PID: %d (esp: 0x%08X)\n",
-    //         calling_pid, ptold->prstkptr, new_pid, ptcopy->prstkptr);
-
-    // Perform context switch
     ptcopy->num_ctxsw++;
     #ifdef DEBUG_CTXSW
         if(currpid != calling_pid)
@@ -101,64 +103,62 @@ void Lottery_scheduler(struct procent *ptold, pid32 calling_pid)
 }
 
 
+// void Create_list_of_tickets(uint32 pid, uint32 tickets)
+// {
+//     struct Node* current_check = head;
+//     struct Node* prev = NULL;
 
-
-void Create_list_of_tickets(uint32 pid, uint32 tickets)
-{
-    struct Node* current_check = head;
-    struct Node* prev = NULL;
-
-    while(current_check != NULL)
-    {
-        if(proctab[current_check->Data.pid].prstate == PR_FREE)
-        {
-            if(current_check == head)
-            {
-                head = current_check->Next;
-                Total_Tickets -= current_check->Data.tickets;
-                freemem((char*)current_check,sizeof(struct Node));
-                current_check = head;
-            }
-            else
-            {
-                prev->Next = current_check->Next;
-                Total_Tickets -= current_check->Data.tickets;
-                freemem((char*)current_check,sizeof(struct Node));
-                current_check = prev->Next;
-            }
-        }
-        else
-        {
-            prev = current_check;
-            current_check = current_check->Next;
-        }
-    }
+//     while(current_check != NULL)
+//     {
+//         if(proctab[current_check->Data.pid].prstate == PR_FREE)
+//         {
+//             if(current_check == head)
+//             {
+//                 head = current_check->Next;
+//                 Total_Tickets -= current_check->Data.tickets;
+//                 freemem((char*)current_check,sizeof(struct Node));
+//                 current_check = head;
+//             }
+//             else
+//             {
+//                 prev->Next = current_check->Next;
+//                 Total_Tickets -= current_check->Data.tickets;
+//                 freemem((char*)current_check,sizeof(struct Node));
+//                 current_check = prev->Next;
+//             }
+//         }
+//         else
+//         {
+//             prev = current_check;
+//             current_check = current_check->Next;
+//         }
+//     }
 
 
 
-    struct Node* newnode = (struct Node*)getmem(sizeof(struct Node));
-    newnode->Data.pid = pid;
-    newnode->Data.tickets = tickets;
-    newnode->Next = NULL;
+//     struct Node* newnode = (struct Node*)getmem(sizeof(struct Node));
+//     newnode->Data.pid = pid;
+//     newnode->Data.tickets = tickets;
+//     newnode->Next = NULL;
 
-    if(head == NULL || (head)->Data.tickets < tickets || ((head)->Data.tickets == tickets && (head)->Data.pid > pid))
-    {
-        newnode->Next = head;
-        head = newnode;
-    }
-    else
-    {
-        struct Node* current_node = head;
-        // current_node->Next = NULL;
-        while(current_node->Next != NULL && current_node->Next->Data.tickets > tickets || (current_node->Next->Data.tickets == tickets && current_node->Next->Data.pid < pid))
-        {
-            current_node = current_node->Next;
-        }
-        newnode->Next = current_node->Next;
-        current_node->Next = newnode;
-    }
+//     if(head == NULL || (head)->Data.tickets < tickets || ((head)->Data.tickets == tickets && (head)->Data.pid > pid))
+//     {
+//         newnode->Next = head;
+//         head = newnode;
+//     }
+//     else
+//     {
+//         struct Node* current_node = head;
+//         // current_node->Next = NULL;
+//         while(current_node->Next != NULL && current_node->Next->Data.tickets > tickets || (current_node->Next->Data.tickets == tickets && current_node->Next->Data.pid < pid))
+//         {
+//             current_node = current_node->Next;
+//         }
+//         newnode->Next = current_node->Next;
+//         current_node->Next = newnode;
+//     }
     
-}
+// }
 
 void printList(struct Node* head) {
     printf("Printing the linked list:\n");

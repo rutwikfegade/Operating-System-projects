@@ -3,7 +3,7 @@
 #include <xinu.h>
 
 struct qentry	queuetab[NQENT];	/* Table of process queues	*/
-
+// extern int32 Total_Tickets;
 /*------------------------------------------------------------------------
  *  enqueue  -  Insert a process at the tail of a queue
  *------------------------------------------------------------------------
@@ -66,6 +66,7 @@ void dequeue_user_list(pid32 pid, qid16 q)
 	queuetab[queuetab[pid].qnext].qprev = queuetab[pid].qprev;
 	head_of_user_list = firstid(q);
 	// kprintf("head after: %d\n",head_of_user_list);
+	// Total_Tickets -= proctab[pid].tickets;
 	return;
 	
 }

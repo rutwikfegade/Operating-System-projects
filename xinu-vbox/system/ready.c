@@ -34,13 +34,13 @@ status	ready(
 	}
 
 	/* Set process state to indicate ready and add to ready list */
-	kprintf("calling pid %d\n",pid);
+	// kprintf("calling pid %d\n",pid);
 	prptr = &proctab[pid];
 	prptr->prstate = PR_READY;
 	if(prptr->user_process == TRUE)
 	{
 		// kprintf("Inserting pid: %d\n",pid);
-		insert(pid, user_list, prptr->tickets);
+		insert_user_process(pid, user_list, prptr->tickets);
 	}
 	else
 	{

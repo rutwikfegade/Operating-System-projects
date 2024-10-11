@@ -18,13 +18,13 @@ int main() {
 
 	sync_printf("\n");
 
-	// sync_printf("=== TESTCASE 1::  1 process - context switches =================\n");	
-	// prA = create_user_process(timed_execution, 1024, "timed_execution", 1, 100);
-	// set_tickets(prA, 50);
-	// resume(prA);
-	// receive();
-	// sleepms(50); //wait for user process to terminate	
-	// kprintf("\nprocess %d:: runtime=%d, turnaround time=%d, ctx=%d\n",prA, proctab[prA].runtime, proctab[prA].turnaroundtime, proctab[prA].num_ctxsw);
+	sync_printf("=== TESTCASE 1::  1 process - context switches =================\n");	
+	prA = create_user_process(timed_execution, 1024, "timed_execution", 1, 100);
+	set_tickets(prA, 50);
+	resume(prA);
+	receive();
+	sleepms(50); //wait for user process to terminate	
+	kprintf("\nprocess %d:: runtime=%d, turnaround time=%d, ctx=%d\n",prA, proctab[prA].runtime, proctab[prA].turnaroundtime, proctab[prA].num_ctxsw);
 	
 	sync_printf("================================================================\n\n");	
 	sync_printf("=== TESTCASE 2::  2 processes - context switches ===============\n");	

@@ -59,6 +59,7 @@ struct procent {		/* Entry in the process table		*/
 	uint32 tickets;
 	uint32 start_time;
 	uint32 start_time_for_turnaroundtime;
+	pid32 pid;
 };
 
 /* Marker for the top of a process stack (used to help detect overflow)	*/

@@ -4,15 +4,16 @@
 
 // local	int newpid();
 // extern uint32	ctr1000;
+extern struct Node *head;
 
-int32 Total_Tickets = 0;
 void set_tickets(pid32 pid, uint32 tickets)
 {
 	proctab[pid].tickets = tickets;
 	
-	Total_Tickets +=tickets;
+	// Total_Tickets +=tickets;
 	// kprintf("Total_Tickets at set_tickets: %d",Total_Tickets);
-	Create_list_of_tickets(pid,tickets);
+	// Create_list_of_tickets(pid,tickets);
+	// printList(head);
 }
 
 void burst_execution(uint32 number_bursts, uint32 burst_duration, uint32 sleep_duration)
@@ -72,6 +73,7 @@ pid32	create_user_process(
 	prptr->tickets = 0;
 	prptr->start_time = ctr1000;
 	prptr->start_time_for_turnaroundtime = ctr1000;
+	prptr->pid = pid;
 	// kprintf("Create ctr1000: %d, start_time: %d, runtime: %d\n", ctr1000, prptr->start_time, prptr->runtime);
 
 	/* Set up stdin, stdout, and stderr descriptors for the shell	*/
