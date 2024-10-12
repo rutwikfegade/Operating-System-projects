@@ -1,8 +1,8 @@
 /* resched.c - resched, resched_cntl */
 
 #include <xinu.h>
-#define DEBUG_CTXSW
-#define DEBUG
+// #define DEBUG_CTXSW
+// #define DEBUG
 struct	defer	Defer;
 pid32 new_pid;
 extern uint32 Total_Tickets;
@@ -115,7 +115,7 @@ void user_to_user(struct procent *ptold, pid32 calling_pid)
 {
 	// print_ready_list();
 	pid32 Entering_pid = currpid;
-	kprintf("This is a user to user process with pid: %d and state: %d\n",currpid,ptold->prstate);
+	// kprintf("This is a user to user process with pid: %d and state: %d\n",currpid,ptold->prstate);
 	if (ptold->prstate == PR_CURR) { 
 		ptold->prstate = PR_READY;
 		insert_user_process(currpid, user_list, ptold->tickets);
@@ -124,9 +124,10 @@ void user_to_user(struct procent *ptold, pid32 calling_pid)
 		new_pid = Find_winner();
 		if(new_pid == SYSERR)
 		{
+			// kprintf("returned because 0 tickets\n");
 			return;
 		}
-		kprintf("winner is %d and currpid is %d\n",new_pid,currpid);
+		// kprintf("winner is %d and currpid is %d\n",new_pid,currpid);
 		dequeue_user_list(new_pid,user_list);
 		currpid = new_pid;
 		ptnew = &proctab[currpid];
@@ -152,9 +153,9 @@ void user_to_user(struct procent *ptold, pid32 calling_pid)
 }
 void	resched(void)		/* Assumes interrupts are disabled	*/
 {
-	
-
-	kprintf("process entering is %d with state %d and priority %d\n",currpid,proctab[currpid].prstate,proctab[currpid].prprio);
+	#ifdef DEBUG
+		kprintf("process entering is %d with state %d and priority %d\n",currpid,proctab[currpid].prstate,proctab[currpid].prprio);
+	#endif
 	pid32 calling_pid = currpid;
 	if (Defer.ndefers > 0) {
 		Defer.attempt = TRUE;
@@ -271,6 +272,16 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 			#endif
 			if(ptold->user_process == TRUE)
 			{
+				if(ptold->prstate == PR_FREE)
+				{
+					kprintf("here1\n");
+					if(proctab[firstid(user_list)].tickets == 0)
+					{
+						kprintf("here2\n");
+						user_to_system(ptold,calling_pid);
+						return;
+					}
+				}
 				user_to_user(ptold,calling_pid);
 			}
 			else

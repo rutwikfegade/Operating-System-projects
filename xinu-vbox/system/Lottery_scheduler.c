@@ -1,6 +1,6 @@
 #include<xinu.h>
 #include<stdlib.h>
-#define DEBUG_CTXSW
+// #define DEBUG_CTXSW
 struct data
 {
     uint32 tickets;
@@ -37,6 +37,7 @@ pid32 Find_winner()
     // kprintf("Total tickets %d\n",Total_Tickets);
     if(Total_Tickets <= 0 )
     {
+        // kprintf("0 tickets\n");
         return SYSERR;
     }
     winner = rand()%Total_Tickets;
@@ -47,7 +48,7 @@ pid32 Find_winner()
         counter += proctab[curr].tickets;
         if(counter > winner)
         {
-            kprintf("winner is %d\n",curr);
+            // kprintf("winner is %d\n",curr);
             return curr;
         }
         curr = queuetab[curr].qnext;
