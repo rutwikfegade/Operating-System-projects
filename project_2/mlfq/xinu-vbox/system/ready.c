@@ -25,7 +25,7 @@ status	ready(
 	prptr->prstate = PR_READY;
 	if(prptr->user_process == TRUE)
 	{
-		total_process += 1;
+		
 		insert(pid, user_list, prptr->prprio);
 	}
 	else

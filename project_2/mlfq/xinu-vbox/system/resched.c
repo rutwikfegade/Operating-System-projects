@@ -72,6 +72,8 @@ void system_to_other(struct procent *ptold, pid32 calling_pid)
 		preempt = QUANTUM;	
 		if(currpid != calling_pid)
 		{
+			// if(currpid == 5 || calling_pid == 5)
+			// 	kprintf("context switch in system to other from %d to %d\n",calling_pid,currpid);
 			ptnew->num_ctxsw++;
 		}
 		#ifdef DEBUG_CTXSW
@@ -101,6 +103,8 @@ void user_to_system(struct procent *ptold, pid32 calling_pid)
 	preempt = QUANTUM;	
 	if(currpid != calling_pid)
 	{
+		// if(currpid == 5 || calling_pid == 5)
+		// 	kprintf("context switch in user to system from %d to %d\n",calling_pid,currpid);
 		ptnew->num_ctxsw++;
 	}
 	#ifdef DEBUG_CTXSW
@@ -132,6 +136,8 @@ void system_to_user(struct procent *ptold, pid32 calling_pid)
 		preempt = QUANTUM;	
 		if(currpid != calling_pid)
 		{
+			// if(currpid == 5 || calling_pid == 5)
+			// 	kprintf("context switch in system to user from %d to %d\n",calling_pid,currpid);
 			ptnew->num_ctxsw++;
 		}
 		#ifdef DEBUG_CTXSW
@@ -165,7 +171,8 @@ void user_to_user(struct procent *ptold, pid32 calling_pid)
 		ptnew = &proctab[currpid];
 		if(currpid != calling_pid)
 		{
-			// kprintf("Not with itself\n");
+			// if(currpid == 5 || calling_pid == 5)
+			// 	kprintf("context switch in user to user from %d to %d\n",calling_pid,currpid);
 			ptnew->num_ctxsw++;
 		}
 		ptnew->prstate = PR_CURR;
@@ -283,7 +290,7 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 			#endif
 			user_to_system(ptold,calling_pid);
 		}
-		else if (nonempty(user_list) || total_process == 1)			// user
+		else if (nonempty(user_list) || ptold->prstate == PR_CURR)			// user
 		{
 			#ifdef DEBUG
 				kprintf("user current to user, entered pid %d\n",currpid);
@@ -299,6 +306,7 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 			#ifdef DEBUG
 				kprintf("user current to null, entered pid %d\n",currpid);
 			#endif
+			// kprintf("user current to null, entered pid %d and total_ process %d\n",currpid,total_process);
 			if(ptold->time_allotment <= 0)
 			{
 				Time_allotment_expired();
