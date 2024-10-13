@@ -6,7 +6,7 @@
 
 struct	defer	Defer;
 struct procent *ptnew;	/* Ptr to table entry for new process	*/
-extern uint32 total_process;
+
 /*------------------------------------------------------------------------
  *  resched  -  Reschedule processor to highest priority eligible process
  *------------------------------------------------------------------------
@@ -19,15 +19,13 @@ void Time_allotment_expired()
 	if(process->prprio > 1)
 	{
 		process->prprio -= 1;
-		// kprintf("Process %d is on Queues number %d\n",currpid,process->prprio);
+		#ifdef DEBUG
+			kprintf("Process %d is on Queues number %d\n",currpid,process->prprio);
+		#endif
 		process->downgrades += 1;
 		process->time_allotment = TIME_ALLOTMENT * (1U << (UPRIORITY_QUEUES - process->prprio));
 	}
-	// else
-	// {
-	// 	process->time_allotment = TIME_ALLOTMENT * (1U << (UPRIORITY_QUEUES - process->prprio));
-	// }
-	
+
 }
 
 void priority_boost()
@@ -38,7 +36,6 @@ void priority_boost()
 	{
 		if(proctab[i].user_process == TRUE && proctab[i].prstate != PR_FREE)
 		{
-			// kprintf("boosting %d\n",i);
 			proctab[i].upgrades += 1;
 			proctab[i].prprio = UPRIORITY_QUEUES;
 			proctab[i].time_allotment = TIME_ALLOTMENT;
@@ -55,9 +52,11 @@ void priority_boost()
 
 void system_to_other(struct procent *ptold, pid32 calling_pid)
 {
-	// print_ready_list();
-	// print_queue(readylist);
-	// kprintf("This is a system to other process with pid: %d and state: %d\n",currpid,ptold->prstate);
+	#ifdef DEBUG
+		print_ready_list();
+		print_queue(readylist);
+		kprintf("This is a system to other process with pid: %d and state: %d\n",currpid,ptold->prstate);
+	#endif
 	if (ptold->prstate == PR_CURR) { 
 		if (ptold->prprio > firstkey(readylist)) {
 			return;
@@ -66,14 +65,11 @@ void system_to_other(struct procent *ptold, pid32 calling_pid)
 		insert(currpid, readylist, ptold->prprio);
 		}
 		currpid = dequeue(readylist);
-		// kprintf("currpid %d\n",currpid);
 		ptnew = &proctab[currpid];
 		ptnew->prstate = PR_CURR;
 		preempt = QUANTUM;	
 		if(currpid != calling_pid)
 		{
-			// if(currpid == 5 || calling_pid == 5)
-			// 	kprintf("context switch in system to other from %d to %d\n",calling_pid,currpid);
 			ptnew->num_ctxsw++;
 		}
 		#ifdef DEBUG_CTXSW
@@ -91,8 +87,10 @@ void system_to_other(struct procent *ptold, pid32 calling_pid)
 
 void user_to_system(struct procent *ptold, pid32 calling_pid)
 {
-	// print_ready_list();
-	// kprintf("This is a user to system process with pid: %d and state: %d\n",currpid,ptold->prstate);
+	#ifdef DEBUG
+		print_ready_list();
+		kprintf("This is a user to system process with pid: %d and state: %d\n",currpid,ptold->prstate);
+	#endif
 	if (ptold->prstate == PR_CURR) { 
 	ptold->prstate = PR_READY;
 	insert(currpid, user_list, ptold->prprio);
@@ -103,8 +101,6 @@ void user_to_system(struct procent *ptold, pid32 calling_pid)
 	preempt = QUANTUM;	
 	if(currpid != calling_pid)
 	{
-		// if(currpid == 5 || calling_pid == 5)
-		// 	kprintf("context switch in user to system from %d to %d\n",calling_pid,currpid);
 		ptnew->num_ctxsw++;
 	}
 	#ifdef DEBUG_CTXSW
@@ -122,9 +118,11 @@ void user_to_system(struct procent *ptold, pid32 calling_pid)
 
 void system_to_user(struct procent *ptold, pid32 calling_pid)
 {
-	// print_ready_list();
-	// kprintf("Entering process %d with state %d\n",currpid,ptold->prstate);
-	// kprintf("This is a system to user process with pid: %d and state: %d\n",currpid,ptold->prstate);
+	#ifdef DEBUG
+		print_ready_list();
+		kprintf("Entering process %d with state %d\n",currpid,ptold->prstate);
+		kprintf("This is a system to user process with pid: %d and state: %d\n",currpid,ptold->prstate);
+	#endif
 	if (ptold->prstate == PR_CURR) { 
 		ptold->prstate = PR_READY;
 		insert(currpid, readylist, ptold->prprio);
@@ -136,8 +134,6 @@ void system_to_user(struct procent *ptold, pid32 calling_pid)
 		preempt = QUANTUM;	
 		if(currpid != calling_pid)
 		{
-			// if(currpid == 5 || calling_pid == 5)
-			// 	kprintf("context switch in system to user from %d to %d\n",calling_pid,currpid);
 			ptnew->num_ctxsw++;
 		}
 		#ifdef DEBUG_CTXSW
@@ -155,14 +151,11 @@ void system_to_user(struct procent *ptold, pid32 calling_pid)
 
 void user_to_user(struct procent *ptold, pid32 calling_pid)
 {
-	// print_ready_list();
-	// kprintf("Total process are %d and is the queue empty %d\n",total_process,isempty(user_list));
-	// if(total_process == 1 && isempty(user_list))
-	// {
-	// 	return;
-	// }
-	pid32 Entering_pid = currpid;
-	// kprintf("This is a user to user process with pid: %d and state: %d\n",currpid,ptold->prstate);
+	#ifdef DEBUG
+		print_ready_list();
+		kprintf("Total process are %d and is the queue empty %d\n",total_process,isempty(user_list));
+	#endif
+	
 	if (ptold->prstate == PR_CURR) { 
 		ptold->prstate = PR_READY;
 		insert(currpid, user_list, ptold->prprio);
@@ -171,8 +164,6 @@ void user_to_user(struct procent *ptold, pid32 calling_pid)
 		ptnew = &proctab[currpid];
 		if(currpid != calling_pid)
 		{
-			// if(currpid == 5 || calling_pid == 5)
-			// 	kprintf("context switch in user to user from %d to %d\n",calling_pid,currpid);
 			ptnew->num_ctxsw++;
 		}
 		ptnew->prstate = PR_CURR;
@@ -195,26 +186,27 @@ void user_to_user(struct procent *ptold, pid32 calling_pid)
 
 void	resched(void)		/* Assumes interrupts are disabled	*/
 {
-	// kprintf("process calling the resched is %d with state %d and ctxsw value of %d\n",currpid,proctab[currpid].prstate,proctab[currpid].num_ctxsw);
+	#ifdef DEBUG
+		kprintf("process calling the resched is %d with state %d and ctxsw value of %d\n",currpid,proctab[currpid].prstate,proctab[currpid].num_ctxsw);
+	#endif
 	struct procent *ptold;	/* Ptr to table entry for old process	*/
 	pid32 calling_pid = currpid;
 	/* If rescheduling is deferred, record attempt and return */
 
 	if (Defer.ndefers > 0) {
-		// kprintf("Defered\n");
 		Defer.attempt = TRUE;
 		return;
 	}
 
 	if(boost_period >= PRIORITY_BOOST_PERIOD)
 	{
-		// kprintf("boosting\n");
 		priority_boost();
 	}
 
 	ptold = &proctab[currpid];
 
-	if(strcmp(ptold->prname, "prnull") != 0 && ptold->user_process == FALSE)		// To get system process only
+	// This if filters all the combination that a system process can context switch to
+	if(strcmp(ptold->prname, "prnull") != 0 && ptold->user_process == FALSE)
 	{
 		if(ptold->prstate == PR_CURR)
 		{
@@ -230,10 +222,12 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 				#ifdef DEBUG
 					kprintf("system current to user, entered pid %d\n",currpid);
 				#endif
-				// if(ptold->time_allotment <= 0)
-				// {
-				// 	Time_allotment_expired();
-				// }
+				#ifdef DEBUG
+					if(ptold->time_allotment <= 0)
+					{
+						Time_allotment_expired();
+					}
+				#endif
 				system_to_user(ptold,calling_pid);
 			}
 			else									// NULL
@@ -246,7 +240,9 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 		}
 		else
 		{
-			// print_queue(readylist);
+			#ifdef DEBUG
+				print_queue(readylist);
+			#endif
 			if(firstid(readylist) != 0)			//System
 			{
 				#ifdef DEBUG
@@ -258,12 +254,13 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 			{
 				#ifdef DEBUG
 					kprintf("system not current to user, entered pid %d\n",currpid);
+					if(ptold->time_allotment <= 0)
+					{
+						Time_allotment_expired();
+					}
+					print_queue(user_list);
 				#endif
-				// if(ptold->time_allotment <= 0)
-				// {
-				// 	Time_allotment_expired();
-				// }
-				// print_queue(user_list);
+				
 				system_to_user(ptold,calling_pid);
 			}
 			else									// NULL
@@ -278,11 +275,13 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 	}
 	else if(strcmp(ptold->prname, "prnull") != 0 && ptold->user_process == TRUE && ptold->prstate == PR_CURR)		// User process only
 	{
-		// kprintf("This is a user process with pid: %d and state: %d and tickets: %d\n",currpid,ptold->prstate,ptold->tickets);
-		// print_ready_list();
-		// print_queue(readylist);
-		// print_queue(user_list);
-		// kprintf("total number of process available %d\n",total_process);
+		#ifdef DEBUG
+			kprintf("This is a user process with pid: %d and state: %d and tickets: %d\n",currpid,ptold->prstate,ptold->tickets);
+			print_ready_list();
+			print_queue(readylist);
+			print_queue(user_list);
+			kprintf("total number of process available %d\n",total_process);
+		#endif
 		if(firstid(readylist) != 0)			//System
 		{
 			#ifdef DEBUG
@@ -306,7 +305,6 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 			#ifdef DEBUG
 				kprintf("user current to null, entered pid %d\n",currpid);
 			#endif
-			// kprintf("user current to null, entered pid %d and total_ process %d\n",currpid,total_process);
 			if(ptold->time_allotment <= 0)
 			{
 				Time_allotment_expired();
@@ -316,8 +314,10 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 	}
 	else		// For null process
 	{
-		// print_ready_list();
-		// print_queue(readylist);
+		#ifdef DEBUG
+			print_ready_list();
+			print_queue(readylist);
+		#endif
 		if(nonempty(readylist) && firstid(readylist) != 0)
 		{
 			#ifdef DEBUG

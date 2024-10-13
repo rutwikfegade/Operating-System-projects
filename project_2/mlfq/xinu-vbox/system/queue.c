@@ -3,7 +3,6 @@
 #include <xinu.h>
 
 struct qentry	queuetab[NQENT];	/* Table of process queues	*/
-uint32 total_process = 0;
 /*------------------------------------------------------------------------
  *  enqueue  -  Insert a process at the tail of a queue
  *------------------------------------------------------------------------
@@ -58,7 +57,7 @@ void print_queue(qid16 q) {
         return;
     }
 
-    qid16 curr = firstid(q);  // Get the first process in the queue
+    qid16 curr = firstid(q);  
 
     if (isempty(q)) {
         kprintf("Queue is empty.\n");
@@ -67,9 +66,8 @@ void print_queue(qid16 q) {
 
     kprintf("Queue elements (PID, key):\n");
 
-    // Traverse the queue until we reach the end
     while (curr != queuetail(q)) {
         kprintf("PID: %d, Key: %d\n", curr, queuetab[curr].qkey);
-        curr = queuetab[curr].qnext;  // Move to the next element in the queue
+        curr = queuetab[curr].qnext;  
     }
 }
