@@ -2,6 +2,8 @@
 
 #include <xinu.h>
 
+
+
 void reset_timing()
 {
     ctr1000 = 0;
@@ -66,6 +68,7 @@ pid32	create_user_process(
 	prptr->start_time_for_turnaroundtime = ctr1000;
     prptr->prprio = UPRIORITY_QUEUES;
     prptr->time_allotment = TIME_ALLOTMENT;
+	
 	/* Set up stdin, stdout, and stderr descriptors for the shell	*/
 	prptr->prdesc[0] = CONSOLE;
 	prptr->prdesc[1] = CONSOLE;

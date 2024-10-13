@@ -1,9 +1,12 @@
 /* resched.c - resched, resched_cntl */
 
 #include <xinu.h>
+#define DEBUG
+
 
 struct	defer	Defer;
 struct procent *ptnew;	/* Ptr to table entry for new process	*/
+extern uint32 total_process;
 /*------------------------------------------------------------------------
  *  resched  -  Reschedule processor to highest priority eligible process
  *------------------------------------------------------------------------
@@ -13,10 +16,15 @@ void Time_allotment_expired()
 	struct procent *process;
 	process = &proctab[currpid];
 
-	if(process->prprio >= 1)
+	if(process->prprio > 1)
 	{
 		process->prprio -= 1;
+		kprintf("Process %d is on Queues number %d\n",currpid,process->prprio);
 		process->downgrades += 1;
+		process->time_allotment = TIME_ALLOTMENT * (1U << (UPRIORITY_QUEUES - process->prprio));
+	}
+	else
+	{
 		process->time_allotment = TIME_ALLOTMENT * (1U << (UPRIORITY_QUEUES - process->prprio));
 	}
 	
@@ -126,6 +134,11 @@ void system_to_user(struct procent *ptold, pid32 calling_pid)
 void user_to_user(struct procent *ptold, pid32 calling_pid)
 {
 	// print_ready_list();
+	kprintf("Total process are %d and is the queue empty %d\n",total_process,isempty(user_list));
+	if(total_process == 1 && isempty(user_list))
+	{
+		return;
+	}
 	pid32 Entering_pid = currpid;
 	// kprintf("This is a user to user process with pid: %d and state: %d\n",currpid,ptold->prstate);
 	if (ptold->prstate == PR_CURR) { 
@@ -156,6 +169,7 @@ void user_to_user(struct procent *ptold, pid32 calling_pid)
 
 void	resched(void)		/* Assumes interrupts are disabled	*/
 {
+	kprintf("process calling the resched is %d with state %d and ctxsw value of %d\n",currpid,proctab[currpid].prstate,proctab[currpid].num_ctxsw);
 	struct procent *ptold;	/* Ptr to table entry for old process	*/
 	pid32 calling_pid = currpid;
 	/* If rescheduling is deferred, record attempt and return */
@@ -236,6 +250,7 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 		// print_ready_list();
 		// print_queue(readylist);
 		// print_queue(user_list);
+		// kprintf("total number of process available %d\n",total_process);
 		if(firstid(readylist) != 0)			//System
 		{
 			#ifdef DEBUG
@@ -243,7 +258,7 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 			#endif
 			user_to_system(ptold,calling_pid);
 		}
-		else if (nonempty(user_list))			// user
+		else if (nonempty(user_list) || total_process == 1)			// user
 		{
 			#ifdef DEBUG
 				kprintf("user current to user, entered pid %d\n",currpid);

@@ -211,7 +211,7 @@ static	void	sysinit()
 
 	readylist = newqueue();
 	user_list = newqueue();
-
+	
 	/* initialize the PCI bus */
 
 	pci_init();

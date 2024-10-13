@@ -1,7 +1,7 @@
 /* kill.c - kill */
 
 #include <xinu.h>
-
+extern uint32 total_process;
 /*------------------------------------------------------------------------
  *  kill  -  Kill a process and remove it from the system
  *------------------------------------------------------------------------
@@ -20,9 +20,10 @@ syscall	kill(
 		restore(mask);
 		return SYSERR;
 	}
-
+	kprintf("process getting killed is %d\n",currpid);
 	if(prptr->user_process == TRUE)
 	{
+		total_process -= 1;
 		prptr->turnaroundtime = ctr1000 - prptr->start_time_for_turnaroundtime;
 	}
 

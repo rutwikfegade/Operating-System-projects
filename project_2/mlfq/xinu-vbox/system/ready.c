@@ -4,6 +4,7 @@
 
 qid16	readylist;			/* Index of ready list		*/
 qid16	user_list;			/* Index of user ready list		*/
+extern uint32 total_process;
 /*------------------------------------------------------------------------
  *  ready  -  Make a process eligible for CPU service
  *------------------------------------------------------------------------
@@ -24,6 +25,7 @@ status	ready(
 	prptr->prstate = PR_READY;
 	if(prptr->user_process == TRUE)
 	{
+		total_process += 1;
 		insert(pid, user_list, prptr->prprio);
 	}
 	else

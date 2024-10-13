@@ -3,7 +3,7 @@
 #include <xinu.h>
 
 struct qentry	queuetab[NQENT];	/* Table of process queues	*/
-
+uint32 total_process = 0;
 /*------------------------------------------------------------------------
  *  enqueue  -  Insert a process at the tail of a queue
  *------------------------------------------------------------------------
