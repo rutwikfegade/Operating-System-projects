@@ -1,0 +1,10 @@
+{
+    "files.associations": {
+        "\"*.y\"": "\"yacc\"",
+        "string.h": "c",
+        "xinu.h": "c",
+        "kernel.h": "c",
+        "stdio.h": "c",
+        "random": "c"
+    }
+}
