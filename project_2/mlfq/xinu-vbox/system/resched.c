@@ -1,7 +1,7 @@
 /* resched.c - resched, resched_cntl */
 
 #include <xinu.h>
-#define DEBUG
+// #define DEBUG
 
 
 struct	defer	Defer;
@@ -19,26 +19,34 @@ void Time_allotment_expired()
 	if(process->prprio > 1)
 	{
 		process->prprio -= 1;
-		kprintf("Process %d is on Queues number %d\n",currpid,process->prprio);
+		// kprintf("Process %d is on Queues number %d\n",currpid,process->prprio);
 		process->downgrades += 1;
 		process->time_allotment = TIME_ALLOTMENT * (1U << (UPRIORITY_QUEUES - process->prprio));
 	}
-	else
-	{
-		process->time_allotment = TIME_ALLOTMENT * (1U << (UPRIORITY_QUEUES - process->prprio));
-	}
+	// else
+	// {
+	// 	process->time_allotment = TIME_ALLOTMENT * (1U << (UPRIORITY_QUEUES - process->prprio));
+	// }
 	
 }
 
 void priority_boost()
 {
+	boost_period = 0;
 	int i;
-	for(i = 0; i<NULLPROC; i++)
+	for(i = 0; i<NPROC; i++)
 	{
-		if(proctab[i].user_process == TRUE)
+		if(proctab[i].user_process == TRUE && proctab[i].prstate != PR_FREE)
 		{
+			// kprintf("boosting %d\n",i);
+			proctab[i].upgrades += 1;
 			proctab[i].prprio = UPRIORITY_QUEUES;
 			proctab[i].time_allotment = TIME_ALLOTMENT;
+			if(proctab[i].prstate == PR_READY)
+			{
+				getitem(i);
+				insert(i,user_list,proctab[i].prprio);
+			}
 		}
 	}
 }
@@ -62,7 +70,10 @@ void system_to_other(struct procent *ptold, pid32 calling_pid)
 		ptnew = &proctab[currpid];
 		ptnew->prstate = PR_CURR;
 		preempt = QUANTUM;	
-		ptnew->num_ctxsw++;
+		if(currpid != calling_pid)
+		{
+			ptnew->num_ctxsw++;
+		}
 		#ifdef DEBUG_CTXSW
 			if(currpid != calling_pid)
 			{
@@ -88,7 +99,10 @@ void user_to_system(struct procent *ptold, pid32 calling_pid)
 	ptnew = &proctab[currpid];
 	ptnew->prstate = PR_CURR;
 	preempt = QUANTUM;	
-	ptnew->num_ctxsw++;
+	if(currpid != calling_pid)
+	{
+		ptnew->num_ctxsw++;
+	}
 	#ifdef DEBUG_CTXSW
 		if(currpid != calling_pid)
 		{
@@ -115,9 +129,11 @@ void system_to_user(struct procent *ptold, pid32 calling_pid)
 		currpid = dequeue(user_list);
 		ptnew = &proctab[currpid];
 		ptnew->prstate = PR_CURR;
-		ptnew->prstate = PR_CURR;
 		preempt = QUANTUM;	
-		ptnew->num_ctxsw++;
+		if(currpid != calling_pid)
+		{
+			ptnew->num_ctxsw++;
+		}
 		#ifdef DEBUG_CTXSW
 			if(currpid != calling_pid)
 			{
@@ -134,11 +150,11 @@ void system_to_user(struct procent *ptold, pid32 calling_pid)
 void user_to_user(struct procent *ptold, pid32 calling_pid)
 {
 	// print_ready_list();
-	kprintf("Total process are %d and is the queue empty %d\n",total_process,isempty(user_list));
-	if(total_process == 1 && isempty(user_list))
-	{
-		return;
-	}
+	// kprintf("Total process are %d and is the queue empty %d\n",total_process,isempty(user_list));
+	// if(total_process == 1 && isempty(user_list))
+	// {
+	// 	return;
+	// }
 	pid32 Entering_pid = currpid;
 	// kprintf("This is a user to user process with pid: %d and state: %d\n",currpid,ptold->prstate);
 	if (ptold->prstate == PR_CURR) { 
@@ -147,10 +163,13 @@ void user_to_user(struct procent *ptold, pid32 calling_pid)
 		}
 		currpid = dequeue(user_list);
 		ptnew = &proctab[currpid];
-		ptnew->prstate = PR_CURR;
+		if(currpid != calling_pid)
+		{
+			// kprintf("Not with itself\n");
+			ptnew->num_ctxsw++;
+		}
 		ptnew->prstate = PR_CURR;
 		preempt = QUANTUM;	
-		ptnew->num_ctxsw++;
 		#ifdef DEBUG_CTXSW
 			if(currpid != calling_pid)
 			{
@@ -169,18 +188,20 @@ void user_to_user(struct procent *ptold, pid32 calling_pid)
 
 void	resched(void)		/* Assumes interrupts are disabled	*/
 {
-	kprintf("process calling the resched is %d with state %d and ctxsw value of %d\n",currpid,proctab[currpid].prstate,proctab[currpid].num_ctxsw);
+	// kprintf("process calling the resched is %d with state %d and ctxsw value of %d\n",currpid,proctab[currpid].prstate,proctab[currpid].num_ctxsw);
 	struct procent *ptold;	/* Ptr to table entry for old process	*/
 	pid32 calling_pid = currpid;
 	/* If rescheduling is deferred, record attempt and return */
 
 	if (Defer.ndefers > 0) {
+		// kprintf("Defered\n");
 		Defer.attempt = TRUE;
 		return;
 	}
 
-	if(ctr1000 == PRIORITY_BOOST_PERIOD)
+	if(boost_period >= PRIORITY_BOOST_PERIOD)
 	{
+		// kprintf("boosting\n");
 		priority_boost();
 	}
 
@@ -202,10 +223,10 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 				#ifdef DEBUG
 					kprintf("system current to user, entered pid %d\n",currpid);
 				#endif
-				if(ptold->time_allotment == 0)
-				{
-					Time_allotment_expired();
-				}
+				// if(ptold->time_allotment <= 0)
+				// {
+				// 	Time_allotment_expired();
+				// }
 				system_to_user(ptold,calling_pid);
 			}
 			else									// NULL
@@ -231,6 +252,10 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 				#ifdef DEBUG
 					kprintf("system not current to user, entered pid %d\n",currpid);
 				#endif
+				// if(ptold->time_allotment <= 0)
+				// {
+				// 	Time_allotment_expired();
+				// }
 				// print_queue(user_list);
 				system_to_user(ptold,calling_pid);
 			}
@@ -263,7 +288,7 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 			#ifdef DEBUG
 				kprintf("user current to user, entered pid %d\n",currpid);
 			#endif
-			if(ptold->time_allotment == 0)
+			if(ptold->time_allotment <= 0)
 			{
 				Time_allotment_expired();
 			}
@@ -274,6 +299,10 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 			#ifdef DEBUG
 				kprintf("user current to null, entered pid %d\n",currpid);
 			#endif
+			if(ptold->time_allotment <= 0)
+			{
+				Time_allotment_expired();
+			}
 			user_to_system(ptold,calling_pid);
 		}
 	}
@@ -301,7 +330,7 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 			#ifdef DEBUG
 				kprintf("user not current or null any to user, entered pid %d\n",currpid);
 			#endif
-			if(ptold->time_allotment == 0)
+			if(ptold->time_allotment <= 0)
 			{
 				Time_allotment_expired();
 			}
@@ -312,7 +341,20 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 			#ifdef DEBUG
 				kprintf("user not current or null any to null, entered pid %d\n",currpid);
 			#endif
-			system_to_other(ptold,calling_pid);
+			if(ptold->user_process == TRUE)
+			{
+				// kprintf("inside is pid %d with state %d and tme allotment as %d\n",currpid,ptold->prstate,ptold->time_allotment);
+				if(ptold->time_allotment <= 0)
+				{
+					Time_allotment_expired();
+				}
+				user_to_system(ptold,calling_pid);
+			}
+			else
+			{
+				system_to_other(ptold,calling_pid);
+			}
+			
 		}
 	}
 

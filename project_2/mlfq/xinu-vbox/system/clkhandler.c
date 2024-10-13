@@ -15,8 +15,13 @@ void	clkhandler()
 	prptr = &proctab[currpid];
 
 	ctr1000++;
-	prptr->runtime++;
-	prptr->time_allotment--;
+	boost_period++;
+	if(prptr->prstate == PR_CURR)
+	{
+		prptr->runtime++;
+		prptr->time_allotment--;
+	}
+
 
 	if((--count1000) <= 0) {
 

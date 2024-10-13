@@ -42,3 +42,4 @@
 #include <stdio.h>
 #include <string.h>
 extern uint32	ctr1000;
+extern uint32 	boost_period;

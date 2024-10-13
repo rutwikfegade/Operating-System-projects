@@ -47,6 +47,7 @@ syscall	sleepms(
 	}
 
 	proctab[currpid].prstate = PR_SLEEP;
+	// kprintf("process %d set to sleep with time allotment of %d\n",currpid,proctab[currpid].time_allotment);
 	resched();
 	restore(mask);
 	return OK;

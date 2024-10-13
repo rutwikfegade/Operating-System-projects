@@ -7,6 +7,7 @@
 void reset_timing()
 {
     ctr1000 = 0;
+	boost_period = 0;
 }
 
 
@@ -17,9 +18,10 @@ void burst_execution(uint32 number_bursts, uint32 burst_duration, uint32 sleep_d
     {
 		uint32 start_time = proctab[currpid].runtime;
         while(proctab[currpid].runtime - start_time < burst_duration);
+		// kprintf("going to sleep and process runtime is %d\n",proctab[currpid].runtime);
         sleepms(sleep_duration);
     }
-    sleepms(sleep_duration);
+    // sleepms(sleep_duration);
 }
 
 pid32	create_user_process(

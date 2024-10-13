@@ -20,7 +20,7 @@ syscall	kill(
 		restore(mask);
 		return SYSERR;
 	}
-	kprintf("process getting killed is %d\n",currpid);
+	// kprintf("process getting killed is %d\n",currpid);
 	if(prptr->user_process == TRUE)
 	{
 		total_process -= 1;

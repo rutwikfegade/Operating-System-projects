@@ -56,7 +56,7 @@ struct procent {		/* Entry in the process table		*/
 	uint32 turnaroundtime;
 	uint32 num_ctxsw;
 	bool8  user_process;
-	uint32 time_allotment;
+	int time_allotment;
 	uint32 start_time_for_turnaroundtime;
 	uint32 upgrades;
 	uint32 downgrades;

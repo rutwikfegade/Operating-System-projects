@@ -4,9 +4,9 @@
 
 #define	DEFER_START	1	/* Start deferred rescehduling		*/
 #define	DEFER_STOP	2	/* Stop  deferred rescehduling		*/
-#define UPRIORITY_QUEUES 3
-#define TIME_ALLOTMENT 100  
-#define PRIORITY_BOOST_PERIOD 10000000
+#define UPRIORITY_QUEUES 5
+#define TIME_ALLOTMENT 10  
+#define PRIORITY_BOOST_PERIOD 500
 /* Structure that collects items related to deferred rescheduling	*/
 
 struct	defer	{
