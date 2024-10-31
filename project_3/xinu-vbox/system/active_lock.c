@@ -31,12 +31,18 @@ void detect_deadlock(pid32 pid,al_lock_t *l)
             {
                 continue;
             }
-           
+            // kprintf("Iterator process = %d with acquired %d and requested %d\n",j,Iterator_proc->acquired,Iterator_proc->requested);
             if((Reference_proc->requested == Iterator_proc->acquired) && (Reference_proc->acquired != Iterator_proc->acquired))
             {
                 // kprintf("process that got selected %d and current process is %d \n",j,currpid);
-                DeadLock_array[j] = j;
-                local_counter++;
+                if(DeadLock_array[j] == NOPROC)
+                {
+                    DeadLock_array[j] = j;
+                    local_counter++;
+                    // kprintf("process that got selected %d and current process is %d \n", j, currpid);
+                    // kprintf("counter = %d and local_counter = %d\n", counter, local_counter);
+                }
+                
                 // kprintf("acquired lock = %d and current lock id = %d\n",proctab[l->lock_owner].acquired,l->lock_id);
                 // kprintf("counter = %d and local_counter = %d\n",counter,local_counter);
                 if(counter == local_counter)
