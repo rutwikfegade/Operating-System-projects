@@ -2,10 +2,8 @@
 
 #include <xinu.h>
 
-#define N 5 // Note: 3*N+4 must be <= NALOCKS 
-
-pid32 pid[3*N+5];		// threads 
-al_lock_t mutex[3*N+5];		// mutexes
+#define M 10
+#define P 10
 
 syscall sync_printf(char *fmt, ...)
 {
@@ -16,77 +14,148 @@ syscall sync_printf(char *fmt, ...)
         return OK;
 }
 
+uint32 get_timestamp(){
+	return ctr1000;
+}
 
 void run_for_ms(uint32 time){
 	uint32 start = proctab[currpid].runtime;
 	while ((proctab[currpid].runtime-start) < time);
 }
 
-process p2(al_lock_t *l1, al_lock_t *l2){
-//	sync_printf("P%d:: acquiring: l1=%d l2=%d\n", currpid, l1->id, l2->id);	
-	al_lock(l1);
-	run_for_ms(1000);
-	al_lock(l2);		
-	run_for_ms(1000);
-	al_unlock(l1);
-	run_for_ms(1000);
-	al_unlock(l2);		
-	run_for_ms(1000);
+process p1(lock_t *l1, uint32 runtime){
+        lock(l1);
+        run_for_ms(runtime);
+        unlock(l1);
+	return OK;
+} 
+
+process p1_pi(pi_lock_t *l1, uint32 runtime){
+	pi_lock(l1);
+	run_for_ms(runtime);
+	pi_unlock(l1);
 	return OK;
 }
+
+process p2_pi(pi_lock_t *l1, pi_lock_t *l2, uint32 runtime, uint32 runtime2){
+	pi_lock(l1);
+	run_for_ms(runtime);
+	pi_lock(l2);		
+	run_for_ms(runtime2);
+	pi_unlock(l2);
+	run_for_ms(runtime2);
+	pi_unlock(l1);		
+	return OK;
+}
+
+process run(uint32 num_threads, pri16 priority, uint32 runtime){
+	uint32 i;
+	for (i=0; i<num_threads;i++)
+		resume(create((void *)run_for_ms, INITSTK, priority, "p", 1,runtime));
+	return OK;
+}
+
+lock_t mutex;
+pi_lock_t pimutex[M];
+pid32 pid[P];
 	
 process	main(void)
 {
 
 	uint32 i;
+	pid32 p;
+	uint32 ts1;
 	
-	/* initialize al_locks */
-	for (i=0; i<3*N+5; i++) al_initlock(&mutex[i]);
+	/* initialize locks */
+	initlock(&mutex);	
+	for (i=0; i<M; i++) pi_initlock(&pimutex[i]);
 
-	kprintf("\n\n=========== TEST for deadlocks  ===================\n\n");
+	kprintf("\n\n=========== TEST 1 for priority inversion  ===================\n\n");
 
-	/* first deadlock: 2 threads */	
-	pid[0] = create((void *)p2, INITSTK, 5, "p2", 2, &mutex[0], &mutex[1]);
-	pid[1] = create((void *)p2, INITSTK, 5, "p2", 2, &mutex[1], &mutex[0]);
+	/* high, low and 10 medium priority threads */
+	kprintf("* lock_t:: 1 high, 1 low and 10 middle priority threads...\n");	
+	pid[0] = create((void *)p1, INITSTK, 1, "lowp", 2, &mutex, 1000);
+	pid[1] = create((void *)p1, INITSTK, 3, "highp", 2, &mutex, 1000);
+	resume(pid[0]);
+	sleepms(10);
+	ts1 = get_timestamp();	
+	resume(pid[1]);
+	sleepms(10);	
+	run(10, 2, 1000);
 
-	/* second deadlock: N threads in sequence */
-	for (i = 2; i < N+1; i++) 	
-		pid[i] = create((void *)p2, INITSTK, 4,"p2", 2, &mutex[i], &mutex[i+1]);
-	pid[N+1] = create((void *)p2, INITSTK, 4,"p2", 2, &mutex[N+1], &mutex[2]);
+        for (i=0; i<12; i++){
+		p=receive();
+		if (p==pid[1]) kprintf("high priority process execution time = %d ms\n", get_timestamp()-ts1);
+	}	
 
-	/* third deadlock: N threads, not in sequence */
-	for (i = N+2; i < 2*N+1; i++) 	
-		pid[i] = create((void *)p2, INITSTK, 3,"p2", 2, &mutex[i], &mutex[i+1]);
-	pid[2*N+1] = create((void *)p2, INITSTK, 3,"p2", 2, &mutex[2*N+1], &mutex[N+2]);
+	sleepms(100); //let all the threads complete
 
-	/* fourth deadlock: N threads - N-2 in a loop, two connected to loop but not part of it */
-	pid[2*N+2] = create((void *)p2, INITSTK, 2,"p2", 2, &mutex[2*N+2], &mutex[2*N+3]);
-	pid[2*N+3] = create((void *)p2, INITSTK, 2,"p2", 2, &mutex[2*N+3], &mutex[2*N+4]);
-	for (i = 2*N+4; i < 3*N+1; i++) 
-		pid[i] = create((void *)p2, INITSTK, 2,"p2", 2, &mutex[i-2], &mutex[i-1]);
-	pid[3*N+1] = create((void *)p2, INITSTK, 2,"p2", 2, &mutex[3*N-1], &mutex[2*N+2]);
+	kprintf("\n* pi_lock_t:: 1 high, 1 low and 10 middle priority threads...\n");	
+	pid[0] = create((void *)p1_pi, INITSTK, 1, "lowp", 2, &pimutex[0], 1000);
+        pid[1] = create((void *)p1_pi, INITSTK, 3, "highp", 2, &pimutex[0], 1000);
+        resume(pid[0]);
+        sleepms(10);
+        ts1 = get_timestamp();
+        resume(pid[1]);
+	sleepms(10);	
+        run(10, 2, 1000);
+               
+        for (i=0; i<12; i++){
+                p=receive();
+                if (p==pid[1]) kprintf("high priority process execution time = %d ms\n", get_timestamp()-ts1);
+        }
 
-	/* two threads connected to existing loops but not part of them - no additional lock detected */
-	pid[3*N+2] = create((void *)p2, INITSTK, 1,"p2", 2, &mutex[1], &mutex[3*N]);
-	pid[3*N+3] = create((void *)p2, INITSTK, 1,"p2", 2, &mutex[3*N+1], &mutex[N]);
-
-	/* one thread disconnected from everybody else */	
-	pid[3*N+4] = create((void *)p2, INITSTK, 1,"p2", 2, &mutex[3*N+2], &mutex[3*N+3]);
-
-	/* starts all the threads  - threads of third deadlock start out-of-order*/
-	for (i = 0; i < 2*N+2; i++) 
-		if (i!=N+2 && i!=2*N) resume(pid[i]);
-	sleepms(100);
-	resume(pid[2*N]);
-	sleepms(100);
-	resume(pid[N+2]);
+        sleepms(100); //let all the threads complete
 	
-	for (i = 2*N+2; i < 3*N+5; i++){ 
+	kprintf("\n\n=========== TEST 2 for priority inversion - transitivity  ===================\n\n");
+	pid[0] = create((void *)p2_pi, INITSTK, 1, "lowp", 4, &pimutex[2], &pimutex[3], 1000, 1000);	
+	pid[1] = create((void *)p2_pi, INITSTK, 2, "mediump", 4, &pimutex[1], &pimutex[2], 1000, 1000);
+	pid[2] = create((void *)p2_pi, INITSTK, 3, "highp", 4, &pimutex[1], &pimutex[3], 1000, 1000);
+
+	resume(pid[0]);
+	sleepms(100);
+	resume(pid[1]);
+	sleepms(100);
+	resume(pid[2]);
+
+	receive();
+	receive();
+	receive();
+        
+	sleepms(100); //let all the threads complete
+
+	kprintf("\n\n=========== TEST 3 for priority restoration - many threads hold same lock  ===================\n\n");
+	for (i=1; i<6;i++){
+		pid[i] = create((void *)p1_pi, INITSTK, i, "p", 2, &pimutex[0], 1000);
 		resume(pid[i]);
-		sleepms(5);
-	}
-
-	kprintf("P%d completed\n", receive());
+		sleepms(10);
+	};
 	
+	for (i=1; i<6;i++){
+		receive();
+	}
+	
+	sleepms(100); //let all the threads complete
+
+	kprintf("\n\n=========== TEST 4 for priority restoration - many threads hold same lock  ===================\n\n");
+	pid[0] = create((void *)p2_pi, INITSTK, 1, "p", 4, &pimutex[1], &pimutex[2], 10, 1500);
+	resume(pid[0]);
+	for (i=1; i<5;i++){
+		pid[i] = create((void *)p1_pi, INITSTK, i, "p", 2, &pimutex[1], 1000);
+		resume(pid[i]);
+		sleepms(10);
+	}
+	for (i=5; i<9;i++){
+		pid[i] = create((void *)p1_pi, INITSTK, i, "p", 2, &pimutex[2], 1000);
+		resume(pid[i]);
+		sleepms(10);
+	}
+	
+	for (i=0; i<9;i++){
+		receive();
+	}
+        
+	sleepms(100); //let all the threads complete
+
 	return OK;
 }

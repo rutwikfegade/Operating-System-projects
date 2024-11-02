@@ -55,6 +55,7 @@ struct procent {		/* Entry in the process table		*/
 	uint32 	runtime;
 	sid32	acquired;
 	sid32	requested;
+	pri16	actual_priority;
 };
 
 /* Marker for the top of a process stack (used to help detect overflow)	*/

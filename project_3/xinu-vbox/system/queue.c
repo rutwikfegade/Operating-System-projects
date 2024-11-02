@@ -50,3 +50,23 @@ pid32	dequeue(
 	queuetab[pid].qnext = EMPTY;
 	return pid;
 }
+void print_queue(qid16 q) {
+    if (isbadqid(q)) {
+        kprintf("Invalid queue ID.\n");
+        return;
+    }
+
+    qid16 curr = firstid(q);  
+
+    if (isempty(q)) {
+        kprintf("Queue is empty.\n");
+        return;
+    }
+
+    kprintf("Queue elements (PID, key):\n");
+
+    while (curr != queuetail(q)) {
+        kprintf("PID: %d, Key: %d, Priority: %d\n", curr, queuetab[curr].qkey,proctab[curr].prprio);
+        curr = queuetab[curr].qnext;  
+    }
+}

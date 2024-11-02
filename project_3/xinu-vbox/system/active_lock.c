@@ -84,6 +84,46 @@ void detect_deadlock(pid32 pid,al_lock_t *l)
     restore(mask);
 }
 
+void al_set_park(al_lock_t *l)
+{
+    intmask	mask;
+    mask = disable();
+    // kprintf("Set parked pid: %d\n",currpid);
+    l->set_park_flag = 1;
+    restore(mask);
+}
+
+void al_park(al_lock_t *l)
+{
+    intmask	mask;
+    struct	procent *prptr;
+    prptr = &proctab[currpid];
+    mask = disable();
+    if(l->set_park_flag == 1)
+    {
+        // kprintf("parked pid: %d\n",currpid);
+        l->set_park_flag = 0;
+        prptr->prstate = PR_WAIT;
+        resched(); 
+    }
+   
+    restore(mask);
+}
+
+void al_unpark(pid32 pid,al_lock_t *l)
+{
+    intmask	mask;
+    struct	procent *prptr;
+    prptr = &proctab[pid];
+    mask = disable();
+    // kprintf("unparked pid: %d\n",currpid);
+    l->set_park_flag = 0;
+    prptr->prstate = PR_READY;
+    insert(pid,readylist,prptr->prprio);
+    resched();
+
+    restore(mask);
+}
 
 
 
@@ -118,9 +158,9 @@ syscall al_lock(al_lock_t *l)
         prptr->requested = l->lock_id;
         // kprintf("entering pid is %d with lock %d\n",currpid,l->lock_id);
         detect_deadlock(currpid,l);
-        set_park(l);
+        al_set_park(l);
         l->guard = 0;
-        park(l);
+        al_park(l);
     }
     return OK;
 }
@@ -134,7 +174,7 @@ syscall al_unlock(al_lock_t *l)
     }
     else
     {
-        unpark(dequeue(l->lock_queue),l);
+        al_unpark(dequeue(l->lock_queue),l);
     }
     l->guard = 0;
     return OK;

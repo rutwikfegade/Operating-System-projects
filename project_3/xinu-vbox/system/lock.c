@@ -52,7 +52,7 @@ syscall initlock(lock_t *l)
 
 syscall lock(lock_t *l)
 {
-    while(test_and_set(&l->guard,1));
+    while(test_and_set(&l->guard,1)) sleepms(QUANTUM);
     if(l->flag == 0)
     {
         // kprintf("pid: %d has the lock\n",currpid);
@@ -71,7 +71,7 @@ syscall lock(lock_t *l)
 
 syscall unlock(lock_t *l)
 {
-    while(test_and_set(&l->guard,1));
+    while(test_and_set(&l->guard,1)) sleepms(QUANTUM);
     if(isempty(l->lock_queue))
     {
         l->flag = 0;
